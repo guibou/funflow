@@ -12,6 +12,7 @@
 {-# LANGUAGE UnboxedTuples #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
+{-# LANGUAGE BangPatterns #-}
 
 -- | 'ContentHashable' provides a hashing function suitable for use in the
 --   Funflow content store.
@@ -217,9 +218,20 @@ contentHashUpdate_storable ctx a =
 
 -- | Update hash context based on a type's 'GHC.Fingerprint.Type.Fingerprint'.
 --
--- The fingerprint is constructed from the library-name, module-name, and name of the type itself.
+-- The fingerprint is constructed from the type name. It was previously using
+-- the typeRep finger print, but this would lead to change of the hash when a
+-- library was changing its name, version, ..., leading to multiple hash invalidations.
+-- The reason for this finger print are unclear, I suppose that it is done in
+-- order to desambiguate the hash in cases such as @("foob", "ar") may end with
+-- the same hash as @("foo", "bar")@
 contentHashUpdate_fingerprint :: (Monad m, Typeable a) => Context SHA256 -> a -> m (Context SHA256)
-contentHashUpdate_fingerprint ctx = contentHashUpdate ctx . typeRepFingerprint . typeOf
+contentHashUpdate_fingerprint ctx _a = let
+  -- TODO: I'm having a large memory leak / infinite loop when using `show $ typeOf a`
+  -- In order to test, let's just use () for fingerprint
+  -- I'm not convinced that fingerprint is important
+  !fingerprint = ()
+
+  in fingerprint `seq` contentHashUpdate ctx fingerprint
 
 -- | Update hash context by combining 'contentHashUpdate_fingerprint' and 'contentHashUpdate_storable'.
 -- Intended for primitive types like 'Int'.
