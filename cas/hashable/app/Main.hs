@@ -34,5 +34,5 @@ main = do
 
   -- This hash should not change, unless the hashing algorithm change or the order of the walk in the structure changes.
   let 
-      expected = "ContentHash \"7f953cc9aaf79bac4d02e70dca91da1ee630b4a7894aeca9ed61942cc3a20d8a\""
+      expected = "ContentHash \"da33d38419fc15489a5435694a5107f07fd62b4659ddd799720f62b9e423e3a0\""
   when (show rawHash /= expected) $ error $ "Raw hash is different than expected: " <> show rawHash

@@ -478,11 +478,15 @@ instance (Constructor c, GContentHashable m f) => GContentHashable m (C1 c f) wh
       nameCtx = hashUpdate ctx0 $ C8.pack (conName x)
 
 instance (Datatype d, GContentHashable m f) => GContentHashable m (D1 d f) where
-  gContentHashUpdate ctx0 x = packageCtx `seq` gContentHashUpdate packageCtx (unM1 x)
+  gContentHashUpdate ctx0 x = datatypeCtx `seq` gContentHashUpdate datatypeCtx (unM1 x)
     where
+      -- Only add the datatype context in the hash
+      -- Adding the module and package would lead to hash invalidation when
+      -- moving the type to another module
+      -- See https://github.com/tweag/funflow/issues/202
       datatypeCtx = hashUpdate ctx0 $ C8.pack (datatypeName x)
-      moduleCtx = hashUpdate datatypeCtx $ C8.pack (datatypeName x)
-      packageCtx = hashUpdate moduleCtx $ C8.pack (datatypeName x)
+      -- moduleCtx = hashUpdate datatypeCtx $ C8.pack (datatypeName x)
+      -- packageCtx = hashUpdate moduleCtx $ C8.pack (datatypeName x)
 
 instance GContentHashable m f => GContentHashable m (S1 s f) where
   gContentHashUpdate ctx x = gContentHashUpdate ctx (unM1 x)
