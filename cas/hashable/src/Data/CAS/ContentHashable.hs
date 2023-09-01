@@ -83,7 +83,7 @@ import qualified Data.HashMap.Lazy as HashMap
 import qualified Data.HashSet as HashSet
 import qualified Data.Hashable
 import Data.Int
-import Data.List (sort)
+import Data.List (sort, sortOn)
 import Data.List.NonEmpty (NonEmpty)
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -358,24 +358,34 @@ instance
       >=> flip contentHashUpdate (Map.toList m)
       $ ctx
 
+-- | This instance for 'HashMap.HashMap' needs an additional 'Ord' constraint
+-- on the key of the map in order to guarantee that the hash does not depend on
+-- the internal of the map and will stay the same regardless of internal
+-- changes (e.g. version of @hashable@)
 instance
-  (Typeable k, Typeable v, ContentHashable m k, ContentHashable m v) =>
+  (Typeable k, Typeable v, ContentHashable m k, ContentHashable m v, Ord k) =>
   ContentHashable m (HashMap.HashMap k v)
   where
   contentHashUpdate ctx m =
     flip contentHashUpdate_fingerprint m
-      -- XXX: The order of the list is unspecified.
-      >=> flip contentHashUpdate (HashMap.toList m)
+      -- Note: the keys are sorted to ensure a robust hash
+      -- See https://github.com/tweag/funflow/issues/215
+      >=> flip contentHashUpdate (sortOn fst $ HashMap.toList m)
       $ ctx
 
+-- | This instance for 'HashSet.HashSet' needs an additional 'Ord' constraint
+-- on the values in order to guarantee that the hash does not depend on
+-- the internal of the map and will stay the same regardless of internal
+-- changes (e.g. version of @hashable@)
 instance
-  (Typeable v, ContentHashable m v) =>
+  (Typeable v, ContentHashable m v, Ord v) =>
   ContentHashable m (HashSet.HashSet v)
   where
   contentHashUpdate ctx s =
     flip contentHashUpdate_fingerprint s
-      -- XXX: The order of the list is unspecified.
-      >=> flip contentHashUpdate (HashSet.toList s)
+      -- Note: the keys are sorted to ensure a robust hash
+      -- See https://github.com/tweag/funflow/issues/215
+      >=> flip contentHashUpdate (sort $ HashSet.toList s)
       $ ctx
 
 instance
